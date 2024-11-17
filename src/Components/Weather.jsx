@@ -15,6 +15,7 @@ const Weather = () => {
     const [weatherData, setWeatherData] = useState(null);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [defaultLocationLoaded, setDefaultLocationLoaded] = useState(false);
 
     const all_icons = {
         "01d": clear_icon,
@@ -38,7 +39,6 @@ const Weather = () => {
         setError('');
         try {
             let url;
-
             if (city) {
                 url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&units=metric&appid=${import.meta.env.VITE_APP_ID}`;
             } else if (lat && lon) {
@@ -48,10 +48,8 @@ const Weather = () => {
                 setLoading(false);
                 return;
             }
-
             const response = await fetch(url);
             const data = await response.json();
-
             if (data.cod === 200) {
                 const icon = all_icons[data.weather[0].icon] || clear_icon;
                 setWeatherData({
@@ -61,40 +59,46 @@ const Weather = () => {
                     location: data.name,
                     icon: icon,
                 });
+                if (city === 'New York') {
+                    setDefaultLocationLoaded(true);
+                }
             } else {
-                // Only show error toast but keep the previous weather data
                 toast.error(data.message || 'City not found.');
-                // Remove the setWeatherData(null) line to keep showing previous data
+                setError(data.message || 'City not found.');
             }
-        } catch (error) {
-            setError('Failed to fetch weather data. Please try again.');
-            // Don't clear weather data on error
+        } catch {
+            const errorMessage = 'Failed to fetch weather data. Please try again.';
+            toast.error(errorMessage);
+            setError(errorMessage);
         } finally {
             setLoading(false);
         }
     };
 
-    const getLocationAndFetchWeather = () => {
-        // Show New York's weather by default when the page loads
-        search('New York'); 
-    
+    const getLocationAndFetchWeather = async () => {
+        // First, try to get user's location
         if (navigator.geolocation) {
-            // Attempt to get user's location
             navigator.geolocation.getCurrentPosition(
-                (position) => {
+                async (position) => {
                     const { latitude, longitude } = position.coords;
-                    console.log("User's location fetched successfully.");
-                    search(null, latitude, longitude); // Fetch weather based on user's location
+                    // Only search user's location if New York data hasn't been loaded yet
+                    if (!defaultLocationLoaded) {
+                        await search(null, latitude, longitude);
+                    }
                 },
-                (error) => {
-                    console.warn('Location access denied or an error occurred. Defaulting to New York.');
-                    // New York is already shown by default, no need to call search here
+                async () => {
+                    console.warn('Location access denied or error occurred.');
+                    // Only search New York if no location data has been loaded yet
+                    if (!defaultLocationLoaded) {
+                        await search('New York');
+                    }
                 }
             );
         } else {
-            // If geolocation is not supported, fallback to New York
-            console.warn('Geolocation not supported by the browser. Defaulting to New York.');
-            // New York is already shown by default, no need to call search here
+            // If geolocation is not supported, use New York as fallback
+            if (!defaultLocationLoaded) {
+                await search('New York');
+            }
         }
     };
 

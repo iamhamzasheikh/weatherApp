@@ -13,11 +13,15 @@
     background-image: linear-gradient(45deg, #2f4680, #500ae4);
 
     .search-bar {
+        /* border: 2px solid red; */
+        width: 100%;
         display: flex;
         align-items: center;
-        gap: 12px;
+        justify-content: space-between;
+        gap: 20px;
 
         input {
+            width: 100%;
             height: 50px;
             border: none;
             outline: none;
@@ -95,3 +99,12 @@
     }
   }
   
+
+@media (max-width: 768px) {
+    .weather {
+        width: 100%;
+        height: 100vh;
+        border-radius: 0;
+        justify-content: start;
+    }
+}
