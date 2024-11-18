@@ -9,6 +9,8 @@ import snow_icon from '../assets/snow.png';
 import wind_icon from '../assets/wind.png';
 import { useEffect, useState, useRef } from 'react';
 import { toast } from 'react-toastify';
+import { Geolocation } from '@capacitor/geolocation';
+
 
 const Weather = () => {
     const inputRef = useRef();
@@ -77,23 +79,15 @@ const Weather = () => {
 
     const getLocationAndFetchWeather = async () => {
         // First, try to get user's location
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                async (position) => {
-                    const { latitude, longitude } = position.coords;
-                    // Only search user's location if New York data hasn't been loaded yet
-                    if (!defaultLocationLoaded) {
-                        await search(null, latitude, longitude);
-                    }
-                },
-                async () => {
-                    console.warn('Location access denied or error occurred.');
-                    // Only search New York if no location data has been loaded yet
-                    if (!defaultLocationLoaded) {
-                        await search('New York');
-                    }
-                }
-            );
+        if (!defaultLocationLoaded) {
+            try {
+                const position = await Geolocation.getCurrentPosition();
+                const { latitude, longitude } = position.coords;
+                await search(null, latitude, longitude);
+            } catch (error) {
+                console.warn('Location access denied or error occurred.');
+                await search('New York'); // Fallback to New York
+            }
         } else {
             // If geolocation is not supported, use New York as fallback
             if (!defaultLocationLoaded) {
